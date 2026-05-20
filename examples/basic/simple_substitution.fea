@@ -1,0 +1,7 @@
+# Simple single substitution example
+# Demonstrates the most basic form of GSUB lookup type 1
+
+feature liga {
+    sub f i by fi;
+    sub f l by fl;
+} liga;
