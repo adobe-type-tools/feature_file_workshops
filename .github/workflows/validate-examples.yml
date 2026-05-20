@@ -63,9 +63,8 @@ jobs:
         fi
 
     - name: Regenerate parser
-      if: steps.grammar_check.outputs.changed == 'true'
       run: |
-        echo "Grammar files changed, regenerating parser..."
+        echo "Regenerating parser..."
         # Generate Python lexer first
         java -jar $ANTLR4_JAR -Dlanguage=Python3 \
           -lib grammar \
