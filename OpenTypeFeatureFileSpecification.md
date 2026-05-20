@@ -143,7 +143,7 @@ specifies that all features will be applied under all languages in the latn
 script, and for all scripts not named in the feature file.
 
 **Note:** All “Implementation Notes” and “Currently not implemented” comments
-in the rest of the specification below refer to the Adobe implementation of the
+in the rest of this specification refer to the Adobe implementation of the
 feature file grammar in the makeotf program, unless otherwise indicated.
 
 <a name="2"></a>

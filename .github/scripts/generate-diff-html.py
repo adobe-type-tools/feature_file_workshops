@@ -35,15 +35,14 @@ def fix_asset_paths(html_file):
     with open(html_file, 'r', encoding='utf-8') as f:
         html_content = f.read()
 
-    # Rewrite DaisyDiff's relative CSS path to root-relative
-    html_content = html_content.replace('href="css/', 'href="/assets/css/')
-
-    # Rewrite DaisyDiff's relative JS paths to root-relative
-    html_content = html_content.replace('src="js/', 'src="/assets/js/')
-    html_content = html_content.replace('src="images/', 'src="/assets/images/')
+    # The modified DaisyDiff JAR outputs root-relative /assets/ paths, which
+    # break on a project Pages site (served at /feature_file_workshops/).
+    # Rewrite to paths relative to pr-{n}/diff.html.
+    html_content = html_content.replace('href="/assets/', 'href="../assets/')
+    html_content = html_content.replace('src="/assets/', 'src="../assets/')
 
     # Inject additional CSS for GitHub Primer styling (before </head>)
-    css_links = '''    <link rel="stylesheet" href="/assets/css/github-primer.css">
+    css_links = '''    <link rel="stylesheet" href="../assets/css/github-primer.css">
 '''
 
     if '</head>' in html_content:
