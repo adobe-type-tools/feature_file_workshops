@@ -1,0 +1,69 @@
+/* GitHub Primer Base Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    color: #1f2328;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 20px;
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+/* PrettyLights Syntax Highlighting */
+:root {
+    --color-prettylights-syntax-comment: #59636e;
+    --color-prettylights-syntax-constant: #0550ae;
+    --color-prettylights-syntax-entity: #6639ba;
+    --color-prettylights-syntax-entity-tag: #0550ae;
+    --color-prettylights-syntax-keyword: #cf222e;
+    --color-prettylights-syntax-string: #0a3069;
+    --color-prettylights-syntax-variable: #953800;
+}
+
+.pl-c { color: var(--color-prettylights-syntax-comment); }
+.pl-c1, .pl-s .pl-v { color: var(--color-prettylights-syntax-constant); }
+.pl-e, .pl-en { color: var(--color-prettylights-syntax-entity); }
+.pl-ent { color: var(--color-prettylights-syntax-entity-tag); }
+.pl-k { color: var(--color-prettylights-syntax-keyword); }
+.pl-s { color: var(--color-prettylights-syntax-string); }
+.pl-v, .pl-smw { color: var(--color-prettylights-syntax-variable); }
+
+/* Code block styling */
+pre {
+    padding: 16px;
+    overflow: auto;
+    font-size: 85%;
+    line-height: 1.45;
+    background-color: #f6f8fa;
+    border-radius: 6px;
+}
+
+code {
+    padding: 0.2em 0.4em;
+    margin: 0;
+    font-size: 85%;
+    background-color: rgba(175, 184, 193, 0.2);
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+}
+
+pre code {
+    display: inline;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+}
+
+/* Navigation link to return */
+.nav-link {
+    display: block;
+    margin-bottom: 20px;
+    color: #0969da;
+    text-decoration: none;
+    font-size: 14px;
+}
+.nav-link:hover {
+    text-decoration: underline;
+}
