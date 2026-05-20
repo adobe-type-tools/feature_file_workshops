@@ -1,0 +1,246 @@
+name: Generate PR Spec Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - 'OpenTypeFeatureFileSpecification.md'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  pull-requests: write
+  deployments: write
+
+jobs:
+  generate-preview:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Checkout PR branch (content)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: pr
+
+      - name: Checkout main branch (scripts)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: base
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Check if spec changed
+        id: check-spec
+        run: |
+          if [ "${{ github.event.action }}" = "closed" ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "status=${{ github.event.pull_request.merged && 'merged' || 'closed' }}" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "status=open" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate spec HTML for PR
+        if: steps.check-spec.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd base
+          python3 .github/scripts/generate-spec-html.py \
+            ../pr/OpenTypeFeatureFileSpecification.md \
+            /tmp/pr-spec.html
+
+      - name: Generate spec HTML for main (baseline)
+        if: steps.check-spec.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd base
+          python3 .github/scripts/generate-spec-html.py \
+            OpenTypeFeatureFileSpecification.md \
+            /tmp/main-spec.html
+
+      - name: Generate diff HTML
+        id: generate_diff
+        if: steps.check-spec.outputs.changed == 'true'
+        continue-on-error: true
+        run: |
+          cd base
+          python3 .github/scripts/generate-diff-html.py \
+            /tmp/main-spec.html \
+            /tmp/pr-spec.html \
+            ../gh-pages/pr-${{ github.event.pull_request.number }}/diff.html
+
+      - name: Create error page if diff failed
+        if: steps.check-spec.outputs.changed == 'true' && steps.generate_diff.outcome == 'failure'
+        run: |
+          mkdir -p gh-pages/pr-${{ github.event.pull_request.number }}
+          cat > gh-pages/pr-${{ github.event.pull_request.number }}/diff.html <<'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="UTF-8">
+              <title>Diff Generation Failed</title>
+              <link rel="stylesheet" href="/assets/css/github-primer.css">
+              <style>
+                body { max-width: 800px; margin: 40px auto; padding: 20px; }
+                h1 { color: #d73a49; }
+                .error-details { background: #fff5f5; border-left: 4px solid #d73a49; padding: 15px; margin: 20px 0; }
+              </style>
+          </head>
+          <body>
+              <h1>❌ Diff Generation Failed</h1>
+              <p>The specification diff could not be generated for this PR.</p>
+              <div class="error-details">
+                  <strong>What happened?</strong><br>
+                  The diff generation process encountered an error during the workflow run.
+              </div>
+              <p><strong>Next steps:</strong></p>
+              <ul>
+                  <li>Check the <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">workflow logs</a> for error details</li>
+                  <li>Verify the specification markdown is valid</li>
+                  <li>Try pushing a new commit to trigger regeneration</li>
+              </ul>
+              <p><a href="/">← Back to landing page</a></p>
+          </body>
+          </html>
+          EOF
+
+      - name: Update PR metadata
+        run: |
+          cd base
+          python3 .github/scripts/manage-pr-metadata.py update \
+            ${{ github.event.pull_request.number }} \
+            "${{ github.event.pull_request.title }}" \
+            "${{ steps.check-spec.outputs.status }}" \
+            "${{ github.event.pull_request.html_url }}" \
+            "${{ github.repository_url }}"
+          cp prs.json ../gh-pages/prs.json
+
+      - name: Regenerate landing page
+        run: |
+          cd base
+          python3 .github/scripts/regenerate-pages.py landing \
+            .github/pages-templates \
+            prs.json \
+            ../gh-pages/index.html \
+            "${{ github.repository_url }}"
+
+      - name: Copy assets to gh-pages
+        run: |
+          # Copy GitHub Primer CSS
+          mkdir -p gh-pages/assets/css
+          cp base/.github/assets/css/github-primer.css gh-pages/assets/css/
+          # Copy DaisyDiff CSS and images
+          cp base/.github/daisydiff/assets/css/diff.css gh-pages/assets/css/
+          mkdir -p gh-pages/assets/images
+          cp base/.github/daisydiff/assets/images/*.gif gh-pages/assets/images/
+          # Copy DaisyDiff JavaScript
+          mkdir -p gh-pages/assets/js
+          cp -r base/.github/daisydiff/assets/js/* gh-pages/assets/js/
+
+      - name: Commit and push to gh-pages
+        run: |
+          cd gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Update PR #${{ github.event.pull_request.number }} preview" || echo "No changes to commit"
+          git push
+
+      - name: Create or update deployment
+        if: steps.check-spec.outputs.changed == 'true' && github.event.action != 'closed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const diffFailed = '${{ steps.generate_diff.outcome }}' === 'failure';
+
+            // Create deployment
+            const deployment = await github.rest.repos.createDeployment({
+              owner: owner,
+              repo: repo,
+              ref: context.payload.pull_request.head.sha,
+              environment: `pr-${prNumber}`,
+              auto_merge: false,
+              required_contexts: [],
+              description: diffFailed ? 'Preview generation failed' : 'Specification preview'
+            });
+
+            // Create deployment status
+            const url = `https://${owner}.github.io/${repo}/pr-${prNumber}/diff.html`;
+            await github.rest.repos.createDeploymentStatus({
+              owner: owner,
+              repo: repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              environment_url: url,
+              description: diffFailed ? 'Preview failed - see page for details' : 'View specification diff'
+            });
+
+      - name: Mark deployment inactive
+        if: github.event.action == 'closed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+
+            // Get deployments for this environment
+            const deployments = await github.rest.repos.listDeployments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment: `pr-${prNumber}`
+            });
+
+            // Mark all as inactive
+            for (const deployment of deployments.data) {
+              await github.rest.repos.createDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: deployment.id,
+                state: 'inactive'
+              });
+            }
+
+      - name: Comment preview link on first open
+        if: github.event.action == 'opened'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const diffUrl = `https://${owner}.github.io/${repo}/pr-${prNumber}/diff.html`;
+
+            const message = `## 📄 Specification Preview\n\n` +
+              `Preview your changes: [**View Diff**](${diffUrl})\n\n` +
+              `The preview updates automatically with each commit. You can also find it at the bottom of this PR under "View deployment".`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: message
+            });
+

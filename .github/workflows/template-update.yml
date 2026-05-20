@@ -1,0 +1,49 @@
+name: Update Pages from Templates
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/pages-templates/**'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  regenerate-all-pages:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Checkout gh-pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Regenerate all pages
+        run: |
+          python3 .github/scripts/regenerate-pages.py all \
+            .github/pages-templates \
+            gh-pages/prs.json \
+            gh-pages \
+            "${{ github.repository_url }}"
+
+      - name: Commit and push to gh-pages
+        run: |
+          cd gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html pr-*/index.html
+          git commit -m "Regenerate pages from updated templates" || echo "No changes to commit"
+          git push

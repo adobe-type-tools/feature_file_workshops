@@ -1,0 +1,7 @@
+# Glyph class definitions
+# Demonstrates: Glyph classes and ranges
+
+@lowercase = [a-z];
+@uppercase = [A-Z];
+@figures = [zero-nine];
+@punctuation = [period comma semicolon colon];

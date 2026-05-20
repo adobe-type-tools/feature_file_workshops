@@ -1,0 +1,13 @@
+# Standard ligature feature
+# Demonstrates: Feature block with substitution rules
+
+languagesystem DFLT dflt;
+languagesystem latn dflt;
+
+feature liga {
+    sub f f i by f_f_i;
+    sub f f l by f_f_l;
+    sub f f by f_f;
+    sub f i by f_i;
+    sub f l by f_l;
+} liga;

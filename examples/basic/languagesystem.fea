@@ -1,0 +1,6 @@
+# Basic languagesystem declarations
+# Demonstrates: Language system setup
+
+languagesystem DFLT dflt;
+languagesystem latn dflt;
+languagesystem latn TRK;

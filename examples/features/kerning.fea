@@ -1,0 +1,12 @@
+# Kerning feature
+# Demonstrates: Positioning rules
+
+languagesystem DFLT dflt;
+
+@upperLeft = [A V W Y];
+@upperRight = [A V W Y];
+
+feature kern {
+    pos A V -50;
+    pos @upperLeft @upperRight -30;
+} kern;

@@ -1,0 +1,20 @@
+# Generated parser files
+grammar/python_generated/
+grammar/FeatLexer.tokens
+grammar/FeatLexer.java
+grammar/FeatLexer.interp
+
+# Local Python dependencies
+lib/
+
+# Compiled Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
