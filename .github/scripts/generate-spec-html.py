@@ -105,6 +105,38 @@ pre code {{
 '''
 
 
+def sort_table_rows(html_content):
+    """
+    Sort the rows of every <tbody> by the text of the first cell.
+
+    DaisyDiff diffs HTML linearly, so reordered table rows appear as a mass
+    of interleaved additions and deletions even when the cell content is
+    unchanged.  Sorting both the old and new HTML into the same order before
+    diffing means only genuine cell-content changes (and truly new/removed
+    rows) show as differences.
+
+    The sort key is the text of the first <code> element inside the first
+    <td>, which matches the keyword column in the spec tables.  Falls back
+    to the plain text of the first <td> for tables that use a different
+    structure.
+    """
+
+    def row_key(row_html):
+        m = re.search(r'<td[^>]*>.*?<code[^>]*>([^<]+)</code>', row_html, re.DOTALL)
+        if m:
+            return m.group(1).lower()
+        m = re.search(r'<td[^>]*>(.*?)</td>', row_html, re.DOTALL)
+        if m:
+            return re.sub(r'<[^>]+>', '', m.group(1)).strip().lower()
+        return ''
+
+    def sort_tbody(match):
+        rows = re.findall(r'<tr>.*?</tr>', match.group(1), re.DOTALL)
+        return '<tbody>' + ''.join(sorted(rows, key=row_key)) + '</tbody>'
+
+    return re.sub(r'<tbody>(.*?)</tbody>', sort_tbody, html_content, flags=re.DOTALL)
+
+
 def convert_markdown_to_html(markdown_content):
     """
     Convert markdown to HTML using GitHub's API.
@@ -162,11 +194,17 @@ def main():
         # Convert via GitHub API
         html_content = convert_markdown_to_html(markdown_content)
 
-        # The GitHub API indents the first token inside every <pre> block to
-        # match the surrounding HTML indentation, while subsequent lines start
-        # at column 0.  Inside a <pre> that whitespace renders as visible
-        # indentation, so strip it here before the file goes into DaisyDiff.
+        # The GitHub API surrounds the content of every <pre> block with
+        # whitespace: a newline + indentation before the first token, and a
+        # newline + indentation before the closing tag.  Inside a <pre> that
+        # whitespace renders as visible blank lines / indentation, so strip
+        # both ends here before the file goes into DaisyDiff.
         html_content = re.sub(r'(<pre[^>]*>)\s+', r'\1', html_content)
+        html_content = re.sub(r'\s+(</pre>)', r'\1', html_content)
+
+        # Sort table rows so that DaisyDiff sees reordered rows as unchanged
+        # rather than as interleaved additions and deletions.
+        html_content = sort_table_rows(html_content)
 
         # Wrap in full HTML document
         full_html = HTML_TEMPLATE.format(content=html_content)

@@ -11,6 +11,7 @@ Arguments:
     OUTPUT   - Path to output diff HTML file
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -50,6 +51,12 @@ def fix_asset_paths(html_file):
     else:
         # If no </head>, inject at beginning
         html_content = css_links + html_content
+
+    # DaisyDiff re-introduces leading/trailing whitespace inside <pre> blocks
+    # (a newline after the opening tag and before the closing tag), which
+    # renders as blank lines in the browser.  Strip both ends.
+    html_content = re.sub(r'(<pre[^>]*>)\s+', r'\1', html_content)
+    html_content = re.sub(r'\s+(</pre>)', r'\1', html_content)
 
     # Write back
     with open(html_file, 'w', encoding='utf-8') as f:
