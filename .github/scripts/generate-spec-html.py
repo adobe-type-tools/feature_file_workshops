@@ -12,6 +12,7 @@ Arguments:
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -160,6 +161,12 @@ def main():
 
         # Convert via GitHub API
         html_content = convert_markdown_to_html(markdown_content)
+
+        # The GitHub API indents the first token inside every <pre> block to
+        # match the surrounding HTML indentation, while subsequent lines start
+        # at column 0.  Inside a <pre> that whitespace renders as visible
+        # indentation, so strip it here before the file goes into DaisyDiff.
+        html_content = re.sub(r'(<pre[^>]*>)\s+', r'\1', html_content)
 
         # Wrap in full HTML document
         full_html = HTML_TEMPLATE.format(content=html_content)
