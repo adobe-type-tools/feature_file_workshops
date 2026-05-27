@@ -164,6 +164,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "Update PR #${{ github.event.pull_request.number }} preview" || echo "No changes to commit"
+          git pull --rebase
           git push
 
       - name: Create or update deployment
