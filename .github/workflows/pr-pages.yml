@@ -1,7 +1,7 @@
 name: Generate PR Spec Preview
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened, closed]
     paths:
       - 'OpenTypeFeatureFileSpecification.md'
@@ -16,7 +16,6 @@ permissions:
 jobs:
   generate-preview:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Checkout PR branch (content)
